@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "tikal-modern-data-eng-2024-spark-lecture"
+version = "0.1.0"
+description = ""
+authors = ["yfeltz <y.feltzman@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pyspark = "^3.5.1"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
