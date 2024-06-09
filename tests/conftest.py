@@ -11,4 +11,5 @@ def spark():
 
 @pytest.fixture()
 def data_sources():
-    return Path("data/sources/")
+    return Path("../data/sources/")
+

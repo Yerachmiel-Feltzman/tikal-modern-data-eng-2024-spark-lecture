@@ -34,14 +34,15 @@ poetry install --no-root
 
 Spawn and venv shell:
 
-```commandline
+```shell
 poetry shell
 ```
 
 Test it works:
 
-```commandline
- pytest tests/test_setup.py -s  
+```shell
+cd tests
+pytest tests/test_setup.py -s  
 ```
 
 It should return a dataframe like this:
@@ -58,7 +59,7 @@ It should return a dataframe like this:
 
 Run:
 
-```commandline
+```shell
 poetry env info
 ```
 
