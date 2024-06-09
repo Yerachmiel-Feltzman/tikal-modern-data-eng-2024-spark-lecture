@@ -1,0 +1,2 @@
+{"Name":"chevrolet chevelle malibu", "Miles_per_Gallon":18, "Cylinders":8, "Displacement":307, "Horsepower":130, "Weight_in_lbs":3504, "Acceleration":12, "Year":"1970-01-01", "Origin":"USA"}
+{"foo": 123, "Name":"chevy s-10", "Miles_per_Gallon": "foo", "Cylinders":4, "Displacement":119, "Horsepower":82, "Weight_in_lbs":2720, "Acceleration":19.4, "Year":"1982-01-01", "Origin":"USA"}
