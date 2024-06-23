@@ -1,3 +1,4 @@
+import uuid
 from pathlib import Path
 
 import pytest
@@ -14,8 +15,8 @@ def data_sources():
     return Path("../data/sources/")
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def data_output_folder():
-    out = Path("../data/output/")
+    out = Path(f"../data/output/{uuid.uuid4()}")
     out.mkdir(exist_ok=True)
     return out
