@@ -1,6 +1,7 @@
 import logging
 from multiprocessing import Array
 from pathlib import Path
+from typing import List
 
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession, DataFrame
@@ -85,15 +86,96 @@ def enrich_cars(cars: DataFrame) -> DataFrame:
     return df
 
 
-def main():
-    # sources = Path("data/sources/")
-    #
-    # spark = SparkSession.builder.master("local[*]").getOrCreate()
-    # df = read_cars_with_schema(spark, sources / "cars.json")
-    # df.printSchema()
-    # df.show()
+def write_cars_naive(cars: DataFrame, path_prefix: Path, file_name: str = "cars") -> None:
+    """
+    https://spark.apache.org/docs/latest/sql-data-sources-parquet.html#loading-data-programmatically
+    """
+    full_path = path_prefix / file_name
+    (
+        cars
+        .write
+        .parquet(full_path.__str__())
+    )
 
-    pass
+
+def write_cars_partition_naive(cars: DataFrame,
+                               path_prefix: Path,
+                               file_name: str = "cars",
+                               partition_columns: List[str] = None) -> None:
+    full_path = path_prefix / file_name
+    (
+        cars
+        .write
+        .partitionBy(partition_columns)
+        .parquet(full_path.__str__())
+    )
+
+
+def write_transactions_partition(transactions: DataFrame,
+                                 path_prefix: Path,
+                                 file_name: str = "transactions",
+                                 partition_columns: List[str] = None) -> None:
+    full_path = path_prefix / file_name
+
+    # 1: first without overwrite -> will fail
+    # 2: without dynamic partition -> will overwrite partitions we don't want (like 2024)
+    # 3: will work
+
+    (
+        transactions
+        .write
+        .partitionBy(partition_columns)
+        .mode("overwrite")
+        .option("partitionOverwriteMode", "dynamic")
+        .parquet(full_path.__str__())
+    )
+
+
+def read(spark: SparkSession, path: Path) -> DataFrame:
+    transactions = spark.read.json(path.__str__())
+    return transactions
+
+
+def enrich_transactions(transactions: DataFrame) -> DataFrame:
+    return transactions
+
+
+def collect_monitoring_metrics(transactions: DataFrame) -> None:
+    transactions.cache()
+
+    count = transactions.count()
+
+    late_arrives = (
+        transactions
+        .where(transactions["date"] <= F.date_sub(F.current_date(), 1))
+        .count()
+    )
+
+    # send
+    print("------- METRICS SENT TO MONITORING SYSTEM -------")
+    print(f"count: {count}")
+    print(f"late_arrives: {late_arrives}")
+    print("-------------------------------------------------")
+
+
+def write(transactions: DataFrame, path: Path):
+    path.mkdir(exist_ok=True)
+
+    write_transactions_partition(transactions,
+                                 path_prefix=path,
+                                 partition_columns=["date"])
+
+
+def main():
+    spark = SparkSession.builder.master("local[*]").getOrCreate()
+
+    transactions = read(spark, Path("../data/sources/transactions.json"))
+
+    enriched = enrich_transactions(transactions)
+
+    collect_monitoring_metrics(enriched)
+
+    write(enriched, path=Path("../data/output/"))
 
 
 if __name__ == '__main__':

@@ -13,3 +13,9 @@ def spark():
 def data_sources():
     return Path("../data/sources/")
 
+
+@pytest.fixture()
+def data_output_folder():
+    out = Path("../data/output/")
+    out.mkdir(exist_ok=True)
+    return out
