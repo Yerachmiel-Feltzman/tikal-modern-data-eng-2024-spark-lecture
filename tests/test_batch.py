@@ -1,11 +1,9 @@
-import datetime
-from dataclasses import dataclass
-
 import pytest
 from chispa import assert_df_equality
 from py4j.protocol import Py4JJavaError
 from pyspark.sql import Row
 
+from tests.models import *
 from tikal_modern_data_eng_2024_spark_lecture.batch import *
 
 
@@ -28,21 +26,6 @@ def test_read_cars_with_bad_schema(spark: SparkSession, data_sources: Path):
     with pytest.raises(Py4JJavaError) as e:
         df = read_cars_with_schema(spark, data_sources / "cars_bad_schema.json")
         df.collect()
-
-
-@dataclass
-class Car:
-    Name: str = "foo"
-    Year: datetime.date = datetime.date(1000, 1, 1)
-    Miles_per_Gallon: int = 0
-    Horsepower: int = 0
-
-
-@dataclass
-class Transaction:
-    date: datetime.date
-    customer: str
-    price: int
 
 
 def test_extract_year_from_date(spark: SparkSession):
@@ -130,7 +113,7 @@ def test_write_cars_partition_naive(spark: SparkSession, data_output_folder: Pat
     assert (data_output_folder / cars_file_name / "year=1990" / "brand=chevrolet").exists()
 
 
-def test_write_cars_partition(spark: SparkSession, data_output_folder: Path):
+def test_write_transactions_partition(spark: SparkSession, data_output_folder: Path):
     transactions = [
         Transaction(date=datetime.date(2024, 10, 10), customer="David", price=150),
         Transaction(date=datetime.date(2020, 10, 10), customer="David", price=100),
@@ -174,7 +157,7 @@ def test_write_cars_partition(spark: SparkSession, data_output_folder: Path):
     assert_df_equality(result, expected, ignore_column_order=True, ignore_row_order=True)
 
 
-def test_collect_monitoring_metrics(spark: SparkSession, data_sources: Path, capfd):
+def test_collect_monitoring_metrics_for_transactions_pipeline(spark: SparkSession, data_sources: Path, capfd):
     transactions = spark.read.json((data_sources / "transactions.json").__str__())
 
     enriched = (
