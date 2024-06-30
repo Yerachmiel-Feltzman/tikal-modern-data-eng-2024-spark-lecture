@@ -3,6 +3,7 @@ from multiprocessing import Array
 from pathlib import Path
 from typing import List
 
+import pyspark
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession, DataFrame, Window
 from pyspark.sql.streaming import DataStreamWriter, StreamingQuery
@@ -74,21 +75,7 @@ def parse_transactions_cdc(cdc: DataFrame) -> DataFrame:
 
 
 def stream_transactions_cdc(spark: SparkSession) -> StreamingQuery:
-    socket = read_from_socket(spark)
-    schema = StructType([
-        StructField("pk", IntegerType()),
-        StructField("op", StringType()),
-        StructField("offset", IntegerType()),
-        StructField("fullDoc", StructType([
-            StructField("customer", StringType()),
-            StructField("price", IntegerType()),
-            StructField("date", DateType()),
-            StructField("is_deleted", BooleanType()),
-            StructField("pk", IntegerType()),
-
-        ])),
-    ])
-    cdc = socket.withColumn("value", F.from_json(F.cast("str", "value"), schema)).select("value.*")
+    cdc = read_transactions_cdc_from_socket(spark)
 
     def batch_processing(df, epoch_id):
         parsed_cdc = parse_transactions_cdc(df)
@@ -107,6 +94,25 @@ def stream_transactions_cdc(spark: SparkSession) -> StreamingQuery:
     )
 
     return query
+
+
+def read_transactions_cdc_from_socket(spark):
+    socket = read_from_socket(spark)
+    schema = StructType([
+        StructField("pk", IntegerType()),
+        StructField("op", StringType()),
+        StructField("offset", IntegerType()),
+        StructField("fullDoc", StructType([
+            StructField("customer", StringType()),
+            StructField("price", IntegerType()),
+            StructField("date", DateType()),
+            StructField("is_deleted", BooleanType()),
+            StructField("pk", IntegerType()),
+
+        ])),
+    ])
+    cdc = socket.withColumn("value", F.from_json(F.cast("str", "value"), schema)).select("value.*")
+    return cdc
 
 
 def main():
