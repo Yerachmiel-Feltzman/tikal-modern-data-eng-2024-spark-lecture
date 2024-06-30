@@ -6,12 +6,15 @@ from typing import List
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession, DataFrame, Window
 from pyspark.sql.streaming import DataStreamWriter, StreamingQuery
-from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, DateType
+from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, DateType, IntegerType, \
+    BooleanType
+
+from tikal_modern_data_eng_2024_spark_lecture import batch
 
 logger = logging.getLogger(__name__)
 
 
-def stream_from_socket_to_console(spark) -> StreamingQuery:
+def read_from_socket(spark: SparkSession) -> DataFrame:
     # nc -lk 9999
     source_df = (
         spark
@@ -22,12 +25,10 @@ def stream_from_socket_to_console(spark) -> StreamingQuery:
         .load()
     )
 
-    result_df = source_df
-    # {"customer":"David","date":"2020-10-10","price":200}
-    # op: "u|i|d
-    # fullDoc
-    # partialDoc
+    return source_df
 
+
+def write_to_console(result_df) -> StreamingQuery:
     query = (
         result_df
         .writeStream
@@ -38,13 +39,23 @@ def stream_from_socket_to_console(spark) -> StreamingQuery:
     return query
 
 
+def stream_from_socket_to_console(spark: SparkSession) -> StreamingQuery:
+    source = read_from_socket(spark)
+    return write_to_console(source)
+
+
 def parse_transactions_cdc(cdc: DataFrame) -> DataFrame:
+    # if cdc.isEmpty():
+    #     return cdc
+
+    # {"customer":"David","date":"2020-10-10","price":200}
+    # op: "u|i|d
+    # fullDoc
+
     dedup_prep = cdc.withColumn(
         "rank",
         F.rank().over(Window.partitionBy("pk").orderBy(F.desc("offset")))
     )
-
-    dedup_prep.show()
 
     result = (
         dedup_prep
@@ -62,21 +73,40 @@ def parse_transactions_cdc(cdc: DataFrame) -> DataFrame:
     return result
 
 
-def read(spark: SparkSession, path: Path) -> DataFrame:
-    source_df = (
-        spark
-        .readStream
-        .format("socket")
-        .option("host")
-        .option("port", 9999)
-        .load()
+def stream_transactions_cdc(spark: SparkSession) -> StreamingQuery:
+    socket = read_from_socket(spark)
+    schema = StructType([
+        StructField("pk", IntegerType()),
+        StructField("op", StringType()),
+        StructField("offset", IntegerType()),
+        StructField("fullDoc", StructType([
+            StructField("customer", StringType()),
+            StructField("price", IntegerType()),
+            StructField("date", DateType()),
+            StructField("is_deleted", BooleanType()),
+            StructField("pk", IntegerType()),
+
+        ])),
+    ])
+    cdc = socket.withColumn("value", F.from_json(F.cast("str", "value"), schema)).select("value.*")
+
+    def batch_processing(df, epoch_id):
+        parsed_cdc = parse_transactions_cdc(df)
+
+        enriched = batch.enrich_transactions(parsed_cdc)
+
+        batch.collect_monitoring_metrics(enriched)
+
+        batch.write(enriched, path=Path("../data/output/"))
+
+    query = (
+        cdc
+        .writeStream
+        .foreachBatch(batch_processing)
+        .start()
     )
 
-    return source_df
-
-
-def enrich(spark, source_df: DataFrame) -> DataFrame:
-    return source_df
+    return query
 
 
 def main():
@@ -90,9 +120,10 @@ def main():
 
     # write(enriched, path=Path("../data/output/"))
 
-    streaming_query = stream_from_socket_to_console(spark)
+    # streaming_query = stream_from_socket_to_console(spark)
+    streaming_query = stream_transactions_cdc(spark)
 
-    streaming_query.awaitTermination()
+    spark.streams.awaitAnyTermination()
 
 
 if __name__ == '__main__':

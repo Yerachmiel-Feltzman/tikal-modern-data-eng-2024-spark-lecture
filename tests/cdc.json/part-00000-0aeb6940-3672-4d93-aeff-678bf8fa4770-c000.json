@@ -1,0 +1,5 @@
+{"fullDoc":{"customer":"David","date":"2024-06-30","is_deleted":false,"pk":1,"price":150},"offset":1,"op":"i","pk":1}
+{"fullDoc":{"customer":"Moses","date":"2024-06-30","is_deleted":false,"pk":2,"price":1000},"offset":2,"op":"i","pk":2}
+{"fullDoc":{"customer":"Rivka","date":"2024-06-30","is_deleted":false,"pk":3,"price":2000},"offset":3,"op":"i","pk":3}
+{"fullDoc":{"customer":"Rivka","date":"2024-06-30","is_deleted":false,"pk":3,"price":3000},"offset":4,"op":"u","pk":3}
+{"offset":5,"op":"d","pk":1}

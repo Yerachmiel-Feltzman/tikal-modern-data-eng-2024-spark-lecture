@@ -21,6 +21,7 @@ def test_parse_transactions_cdc(spark: SparkSession):
     ]
 
     cdc = spark.createDataFrame(cdc)
+    cdc.coalesce(1).write.json("./cdc.json")
     expected_state = spark.createDataFrame(expected_state)
 
     result = parse_transactions_cdc(cdc)

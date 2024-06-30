@@ -155,6 +155,8 @@ def collect_monitoring_metrics(transactions: DataFrame) -> None:
     print("------- METRICS SENT TO MONITORING SYSTEM -------")
     print(f"count: {count}")
     print(f"late_arrives: {late_arrives}")
+    print("dataframe: ")
+    transactions.show()
     print("-------------------------------------------------")
 
 
