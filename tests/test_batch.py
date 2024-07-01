@@ -157,6 +157,25 @@ def test_write_transactions_partition(spark: SparkSession, data_output_folder: P
     assert_df_equality(result, expected, ignore_column_order=True, ignore_row_order=True)
 
 
+def test_enrich_transactions(spark: SparkSession):
+    transactions = [
+        Transaction(customer="David", price=150),
+        Transaction(customer="Moses", price=100),
+    ]
+    transactions = spark.createDataFrame(transactions)
+
+    expected = [
+        Transaction(customer="David", price=150 * 4),
+        Transaction(customer="Moses", price=100 * 4),
+    ]
+    expected = spark.createDataFrame(expected)
+
+    result = enrich_transactions(transactions)
+
+    assert result.collect()[0] == expected.collect()[0]
+    assert result.collect()[1] == expected.collect()[1]
+
+
 def test_collect_monitoring_metrics_for_transactions_pipeline(spark: SparkSession, data_sources: Path, capfd):
     transactions = spark.read.json((data_sources / "transactions.json").__str__())
 
