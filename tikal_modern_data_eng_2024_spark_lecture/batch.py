@@ -3,9 +3,11 @@ from multiprocessing import Array
 from pathlib import Path
 from typing import List
 
+import pandas as pd
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession, DataFrame
-from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, DateType
+from pyspark.sql.pandas.functions import pandas_udf
+from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, DateType, IntegerType
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +139,11 @@ def read(spark: SparkSession, path: Path) -> DataFrame:
 
 
 def enrich_transactions(transactions: DataFrame) -> DataFrame:
-    return transactions
+    @pandas_udf(returnType=IntegerType())
+    def convert_to_nis(usd: pd.Series) -> pd.Series:
+        return usd * 4
+
+    return transactions.withColumn("price", convert_to_nis("price"))
 
 
 def collect_monitoring_metrics(transactions: DataFrame) -> None:

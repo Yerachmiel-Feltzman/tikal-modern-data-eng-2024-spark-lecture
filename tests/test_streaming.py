@@ -52,11 +52,11 @@ def test_write_cdc(spark: SparkSession, data_output_folder: Path):
     incremental_state = spark.createDataFrame(incremental_state)
     expected_final_state = spark.createDataFrame(expected_final_state)
 
-    path_to_table = (data_output_folder / uuid.uuid4().__str__()).absolute().__str__()
+    path_to_table = (data_output_folder / uuid.uuid4().__str__())
 
     write_incremental_state(spark, prev_state, path_to_table)
     write_incremental_state(spark, incremental_state, path_to_table)
 
-    final_state = DeltaTable.forPath(spark, path_to_table).toDF()
+    final_state = DeltaTable.forPath(spark, path_to_table.absolute().__str__()).toDF()
 
     assert_df_equality(expected_final_state, final_state, ignore_column_order=True, ignore_row_order=True)

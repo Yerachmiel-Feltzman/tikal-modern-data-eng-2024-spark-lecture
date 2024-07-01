@@ -10,6 +10,8 @@ python = "^3.11"
 pyspark = "^3.5.1"
 chispa = "^0.10.0"
 delta-spark = "^3.2.0"
+pandas = {extras = ["arrow"], version = "^2.2.2"}
+pyarrow = "^16.1.0"
 
 
 [tool.poetry.group.dev.dependencies]

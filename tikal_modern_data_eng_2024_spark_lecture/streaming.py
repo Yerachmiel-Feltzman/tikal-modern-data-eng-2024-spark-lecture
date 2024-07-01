@@ -5,7 +5,7 @@ from typing import List
 
 import pyspark
 import pyspark.sql.functions as F
-from delta import DeltaTable
+from delta import DeltaTable, configure_spark_with_delta_pip
 from pyspark.sql import SparkSession, DataFrame, Window
 from pyspark.sql.streaming import DataStreamWriter, StreamingQuery
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, DateType, IntegerType, \
@@ -75,11 +75,13 @@ def parse_transactions_cdc(cdc: DataFrame) -> DataFrame:
     return result
 
 
-def write_incremental_state(spark: SparkSession, incremental_state: DataFrame, path_to_table: str):
-    if DeltaTable.isDeltaTable(spark, path_to_table):
+def write_incremental_state(spark: SparkSession, incremental_state: DataFrame, path_to_table: Path):
+    path_to_table.mkdir(exist_ok=True)
+
+    if DeltaTable.isDeltaTable(spark, path_to_table.__str__()):
         (
             DeltaTable
-            .forPath(spark, path_to_table)
+            .forPath(spark, path_to_table.__str__())
             .alias("old")
             .merge(
                 incremental_state.alias("new"),
@@ -96,7 +98,7 @@ def write_incremental_state(spark: SparkSession, incremental_state: DataFrame, p
             .write
             .format("delta")
             .partitionBy("date")
-            .save(path_to_table)
+            .save(path_to_table.__str__())
         )
 
 
@@ -106,11 +108,12 @@ def stream_transactions_cdc(spark: SparkSession) -> StreamingQuery:
     def batch_processing(df, epoch_id):
         parsed_cdc = parse_transactions_cdc(df)
 
+        # logic replicated from batch:
         enriched = batch.enrich_transactions(parsed_cdc)
-
         batch.collect_monitoring_metrics(enriched)
+        ####
 
-        batch.write(enriched, path=Path("../data/output/"))
+        write_incremental_state(spark, enriched, path_to_table=Path("../data/output/transactions_cdc"))
 
     query = (
         cdc
@@ -142,20 +145,22 @@ def read_transactions_cdc_from_socket(spark):
 
 
 def main():
-    spark = SparkSession.builder.master("local[*]").getOrCreate()
+    builder = (
+        SparkSession
+        .builder
+        .master("local[*]")
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
+    )
 
-    # transactions = read(spark, Path("../data/sources/transactions.json"))
-    #
-    # enriched = enrich_transactions(transactions)
-    #
-    # collect_monitoring_metrics(enriched)
-
-    # write(enriched, path=Path("../data/output/"))
+    spark = configure_spark_with_delta_pip(builder).getOrCreate()
 
     # streaming_query = stream_from_socket_to_console(spark)
     streaming_query = stream_transactions_cdc(spark)
 
     spark.streams.awaitAnyTermination()
+
+    # DeltaTable.forPath(spark, "../data/output/transactions_cdc").toDF().show()
 
 
 if __name__ == '__main__':
