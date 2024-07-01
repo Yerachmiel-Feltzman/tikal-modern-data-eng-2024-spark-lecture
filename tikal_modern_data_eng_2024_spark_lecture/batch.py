@@ -36,12 +36,12 @@ def read_cars_with_schema(spark: SparkSession, path: Path) -> DataFrame:
         StructField("Origin", StringType())
     ])
 
+    # TODO: FIX so test `test_read_cars_with_bad_schema` passes
     # docs: https://spark.apache.org/docs/latest/sql-data-sources-json.html
     df = (
         spark.read
         .format("json")
         .schema(schema)
-        .option("mode", "FAILFAST")
         .option("path", path.__str__())
         .load()
     )
@@ -119,36 +119,31 @@ def write_transactions_partition(transactions: DataFrame,
                                  partition_columns: List[str] = None) -> None:
     full_path = path_prefix / file_name
 
-    # 1: first without overwrite -> will fail
-    # 2: without dynamic partition -> will overwrite partitions we don't want (like 2024)
-    # 3: will work
-
+    # TODO: make test `test_write_transactions_partition` pass
     (
         transactions
         .write
         .partitionBy(partition_columns)
         .mode("overwrite")
-        .option("partitionOverwriteMode", "dynamic")
         .parquet(full_path.__str__())
     )
 
 
 def read(spark: SparkSession, path: Path) -> DataFrame:
-    transactions = spark.read.json(path.__str__())
     return transactions
 
 
 def enrich_transactions(transactions: DataFrame) -> DataFrame:
     @pandas_udf(returnType=IntegerType())
     def convert_to_nis(usd: pd.Series) -> pd.Series:
-        return usd * 4
+        # TODO: make test `test_enrich_transactions` pass
+        pass
 
     return transactions.withColumn("price", convert_to_nis("price"))
 
 
 def collect_monitoring_metrics(transactions: DataFrame) -> None:
-    transactions.cache()
-
+    # TODO: make test `test_collect_monitoring_metrics_for_transactions_pipeline` pass
     count = transactions.count()
 
     late_arrives = (

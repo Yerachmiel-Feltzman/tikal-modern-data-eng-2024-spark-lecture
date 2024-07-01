@@ -50,6 +50,9 @@ def parse_transactions_cdc(cdc: DataFrame) -> DataFrame:
     # {"customer":"David","date":"2020-10-10","price":200}
     # op: "u|i|d
     # fullDoc
+    # pk
+
+    # TODO: make test `test_parse_transactions_cdc` pass
 
     dedup_prep = cdc.withColumn(
         "rank",
@@ -58,7 +61,6 @@ def parse_transactions_cdc(cdc: DataFrame) -> DataFrame:
 
     result = (
         dedup_prep
-        .where(dedup_prep.rank == 1)
         .withColumn("is_deleted", cdc.op == "d")
         .select(
             "fullDoc.customer",
@@ -73,6 +75,8 @@ def parse_transactions_cdc(cdc: DataFrame) -> DataFrame:
 
 
 def write_incremental_state(spark: SparkSession, incremental_state: DataFrame, path_to_table: Path):
+    # TODO: make test `test_write_cdc` pass
+
     path_to_table.mkdir(exist_ok=True)
 
     if DeltaTable.isDeltaTable(spark, path_to_table.__str__()):
@@ -89,14 +93,7 @@ def write_incremental_state(spark: SparkSession, incremental_state: DataFrame, p
             .execute()
         )
 
-    else:
-        (
-            incremental_state
-            .write
-            .format("delta")
-            .partitionBy("date")
-            .save(path_to_table.__str__())
-        )
+
 
 
 def stream_transactions_cdc(spark: SparkSession) -> StreamingQuery:
