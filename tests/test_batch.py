@@ -137,7 +137,7 @@ def test_write_transactions_partition(spark: SparkSession, data_output_folder: P
     expected = spark.createDataFrame(expected)
 
     transactions_file_name = "transactions.parquet"
-
+    transactions.show()
     write_transactions_partition(transactions,
                                  path_prefix=data_output_folder,
                                  file_name=transactions_file_name,

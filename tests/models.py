@@ -17,7 +17,7 @@ class Transaction:
     price: int = None
     date: datetime.date = datetime.date.today()
     is_deleted: bool = False
-    pk: int = random.randint
+    pk: int = random.randint(0, 1000)
 
 
 @dataclass

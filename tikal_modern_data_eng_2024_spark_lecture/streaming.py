@@ -5,6 +5,7 @@ from typing import List
 
 import pyspark
 import pyspark.sql.functions as F
+from delta import DeltaTable
 from pyspark.sql import SparkSession, DataFrame, Window
 from pyspark.sql.streaming import DataStreamWriter, StreamingQuery
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, DateType, IntegerType, \
@@ -72,6 +73,31 @@ def parse_transactions_cdc(cdc: DataFrame) -> DataFrame:
     )
 
     return result
+
+
+def write_incremental_state(spark: SparkSession, incremental_state: DataFrame, path_to_table: str):
+    if DeltaTable.isDeltaTable(spark, path_to_table):
+        (
+            DeltaTable
+            .forPath(spark, path_to_table)
+            .alias("old")
+            .merge(
+                incremental_state.alias("new"),
+                "new.pk = old.pk"
+            )
+            .whenMatchedUpdateAll()
+            .whenNotMatchedInsertAll()
+            .execute()
+        )
+
+    else:
+        (
+            incremental_state
+            .write
+            .format("delta")
+            .partitionBy("date")
+            .save(path_to_table)
+        )
 
 
 def stream_transactions_cdc(spark: SparkSession) -> StreamingQuery:
