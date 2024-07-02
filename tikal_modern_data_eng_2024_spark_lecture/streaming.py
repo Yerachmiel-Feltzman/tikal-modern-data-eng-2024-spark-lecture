@@ -47,9 +47,6 @@ def stream_from_socket_to_console(spark: SparkSession) -> StreamingQuery:
 
 
 def parse_transactions_cdc(cdc: DataFrame) -> DataFrame:
-    # if cdc.isEmpty():
-    #     return cdc
-
     # {"customer":"David","date":"2020-10-10","price":200}
     # op: "u|i|d
     # fullDoc
