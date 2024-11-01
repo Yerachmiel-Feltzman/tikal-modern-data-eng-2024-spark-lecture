@@ -32,17 +32,8 @@ poetry install --no-root
 
 ### Test all is set up:
 
-Spawn and venv shell:
-
 ```shell
-poetry shell
-```
-
-Test it works:
-
-```shell
-cd tests
-pytest tests/test_setup.py -s  
+poetry run pytest tests/test_setup.py -s
 ```
 
 It should return a dataframe like this:
