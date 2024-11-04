@@ -1,3 +1,4 @@
+import importlib.resources
 import uuid
 from pathlib import Path
 
@@ -27,11 +28,11 @@ def spark():
 
 @pytest.fixture()
 def data_sources():
-    return Path("../data/sources/")
+    return importlib.resources.files("data") / "sources"
 
 
 @pytest.fixture(scope="function")
 def data_output_folder():
-    out = Path("../data/output/") / uuid.uuid4().__str__()
-    out.mkdir(exist_ok=True, parents=True)
+    out = importlib.resources.files("data") / "output" / uuid.uuid4().__str__()
+    Path(out).mkdir(exist_ok=True, parents=True)
     return out
