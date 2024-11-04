@@ -10,7 +10,7 @@ Suggested installation:
 - it'll automatically use the [.python-version](.python-version) file in the project's root folder
 - after installing `pyenv` correctly, simply run `pyenv install`
 
-### Java 8 (will probably also work with 11, 17, 21, or 23)
+### Java 8 (will probably also work with 11, 17, 21)
 
 Suggested installation:
 
